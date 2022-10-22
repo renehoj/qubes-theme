@@ -7,8 +7,10 @@ inputs = null;
 imputs.key_press = 0;
 
 bootProgress = null;
+bootProgress.enabled = 1;
 bootProgress.show = 0;
-bootProgress.text = "Progress: ";
+bootProgress.mode = Plymouth.GetMode();
+bootProgress.text = "Progress (" + bootProgress.mode  + "): ";
 bootProgress.image = Image.Text(bootProgress.text + "00%", 1, 1, 1);
 bootProgress.sprite = Sprite();
 bootProgress.sprite.SetX(scr.half.w - bootProgress.image.GetWidth() / 2);
@@ -20,6 +22,7 @@ prompt = null;
 bullets = null;
 bullet.image = Image.Text("*", 1, 1, 1);
 
+animation = null;
 animation.index = 1;
 animation.index_max = 119;
 animation.delay = 0.05;
@@ -33,12 +36,33 @@ animation.sprite = Sprite();
 animation.sprite.SetX(scr.half.w - animation.frames[1].image.GetWidth() / 2);
 animation.sprite.SetY(scr.half.h - animation.frames[1].image.GetHeight() / 2);
 
+logo = null;
 logo.image = Image("qubes.png");
 logo.sprite = Sprite(logo.image);
 logo.sprite.SetX(scr.half.w - logo.image.GetWidth() / 2);
 logo.sprite.SetY(scr.h - 25 - logo.image.GetHeight()); 
+logo.opacity = 1;
+logo.fade = 1;
 
-fun RefreshFunction() {
+statusPrompt = null;
+statusPrompt.enabled = 0;
+statusPrompt.show = 0;
+statusPrompt.text = "";
+statusPrompt.sprite = Sprite();
+
+fun UpdateStatusFunction(status) {
+
+	if(statusPrompt.enabled == 1 && status != null && status != "") {
+		statusPrompt.image = Image.Text(status, 1, 1, 1);
+		statusPrompt.sprite.SetX(scr.half.w - statusPrompt.image.GetWidth() / 2);
+		statusPrompt.sprite.SetY(scr.h - 10 * statusPrompt.image.GetHeight());
+		statusPrompt.sprite.SetImage(statusPrompt.image);
+	}
+}
+
+Plymouth.SetUpdateStatusFunction(UpdateStatusFunction);
+
+fun DoAnimation() {
 
 	if(animation.index < animation.index_max) {
 		animation.sprite.SetImage(animation.frames[animation.index].image);
@@ -47,6 +71,15 @@ fun RefreshFunction() {
 		animation.index = 1;
 	}
 }
+
+fun RefreshFunction() {
+	
+	if(animation.delay == 0) {
+		DoAnimation();
+	}
+}
+
+Plymouth.SetRefreshFunction(RefreshFunction);
 
 fun BootProgressText(progress) {
 
@@ -61,23 +94,38 @@ fun BootProgressText(progress) {
 
 fun BootProgressFunction(time, progress) {
 
-	BootProgressText(progress);
+	if(bootProgress.enabled == 1) {		
+		BootProgressText(progress);
+	}
+
+	if(logo.fade == 1 && time > 3 && logo.opacity > 0) {
+		logo.opacity -= 0.05;
+		logo.sprite.SetOpacity(logo.opacity);
+	}
 
 	if(animation.time == 0) {
 		animation.time = time;
 	}
 
-	if(time - animation.time > animation.delay) {
+	if(animation.delay > 0 && time - animation.time > animation.delay) {
 		animation.time = time;
-		RefreshFunction();
+		DoAnimation();
 	}
 }
 
 Plymouth.SetBootProgressFunction(BootProgressFunction);
 
 fun PasswordFunction(nil, bulletCount) {
-	
-	bootProgress.show = 0;
+
+	if(statusPrompt.show == 1) {
+		statusPrompt.sprite.SetOpacity(0);
+		statusPrompt.show = 0;
+	}	
+
+	if(bootProgress.show == 1) {
+		bootProgress.sprite.SetOpacity(0);
+		bootProgress.show = 0;
+	}
 
 	tWidth = bulletCount * bullet.image.GetWidth();
 	sPos = scr.half.w - tWidth / 2;
@@ -100,6 +148,10 @@ Plymouth.SetDisplayPasswordFunction(PasswordFunction);
 fun DisplayNormalFunction() {
 	
 	bootProgress.show = 1;
+	bootProgress.sprite.SetOpacity(1);
+	statusPrompt.show = 1;
+	statusPrompt.sprite.SetOpacity(1);
+
 	bullets = null;
 	prompt = null;
 	message = null;
@@ -118,7 +170,7 @@ Plymouth.SetKeyboardInputFunction(KeyInputFunction);
 fun MessageFunction(text) {
 	message.image = Image.Text(text, 1, 1, 1);
 	message.sprite = Sprite(message.image);
-	message.sprite.SetPosition(src.half.w - message.image.GetWidth() /2, message.image.GetHeight());
+	message.sprite.SetPosition(src.half.w - message.image.GetWidth() /2, 50);
 }
 
 Plymouth.SetMessageFunction(MessageFunction);
