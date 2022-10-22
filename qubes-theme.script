@@ -1,0 +1,125 @@
+scr.w = Window.GetWidth();
+scr.h = Window.GetHeight();
+scr.half.w = scr.w / 2;
+scr.half.h = scr.h / 2;
+
+inputs = null;
+imputs.key_press = 0;
+
+bootProgress = null;
+bootProgress.show = 0;
+bootProgress.text = "Progress: ";
+bootProgress.image = Image.Text(bootProgress.text + "00%", 1, 1, 1);
+bootProgress.sprite = Sprite();
+bootProgress.sprite.SetX(scr.half.w - bootProgress.image.GetWidth() / 2);
+bootProgress.sprite.SetY(scr.h - 8 * bootProgress.image.GetHeight());
+bootProgress.value = 0;
+
+message = null;
+prompt = null;
+bullets = null;
+bullet.image = Image.Text("*", 1, 1, 1);
+
+animation.index = 1;
+animation.index_max = 119;
+animation.delay = 0.05;
+animation.time = 0;
+
+for(i = 1; i < animation.index_max; i++) {
+	animation.frames[i].image = Image("animation-" + i + ".png");
+}
+
+animation.sprite = Sprite();
+animation.sprite.SetX(scr.half.w - animation.frames[1].image.GetWidth() / 2);
+animation.sprite.SetY(scr.half.h - animation.frames[1].image.GetHeight() / 2);
+
+logo.image = Image("qubes.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(scr.half.w - logo.image.GetWidth() / 2);
+logo.sprite.SetY(scr.h - 25 - logo.image.GetHeight()); 
+
+fun RefreshFunction() {
+
+	if(animation.index < animation.index_max) {
+		animation.sprite.SetImage(animation.frames[animation.index].image);
+		animation.index++;
+	} else {
+		animation.index = 1;
+	}
+}
+
+fun BootProgressText(progress) {
+
+	pVal = Math.Int(progress * 100);
+	
+	if(bootProgress.show == 1 && pVal > bootProgress.value) {	
+		bootProgress.value = pVal;
+		bootProgress.image = Image.Text(bootProgress.text + pVal + "%", 1, 1, 1);
+		bootProgress.sprite.SetImage(bootProgress.image);
+	}
+}
+
+fun BootProgressFunction(time, progress) {
+
+	BootProgressText(progress);
+
+	if(animation.time == 0) {
+		animation.time = time;
+	}
+
+	if(time - animation.time > animation.delay) {
+		animation.time = time;
+		RefreshFunction();
+	}
+}
+
+Plymouth.SetBootProgressFunction(BootProgressFunction);
+
+fun PasswordFunction(nil, bulletCount) {
+	
+	bootProgress.show = 0;
+
+	tWidth = bulletCount * bullet.image.GetWidth();
+	sPos = scr.half.w - tWidth / 2;
+	
+	prompt.image = Image.Text("Enter LUKS password", 1, 1, 1);
+	prompt.sprite = Sprite(prompt.image);
+	prompt.sprite.SetX(scr.half.w - prompt.image.GetWidth() / 2);
+	prompt.sprite.SetY(scr.h - 12 * prompt.image.GetHeight());
+
+	bullets = null;
+	for(i = 0; i < bulletCount; i++){
+		bullets[i].sprite = Sprite(bullet.image);
+		bullets[i].sprite.SetX(sPos + i * bullet.image.GetWidth());
+		bullets[i].sprite.SetY(scr.h - 10 * bullet.image.GetHeight());
+	}
+}
+
+Plymouth.SetDisplayPasswordFunction(PasswordFunction);
+
+fun DisplayNormalFunction() {
+	
+	bootProgress.show = 1;
+	bullets = null;
+	prompt = null;
+	message = null;
+}
+
+Plymouth.SetDisplayNormalFunction(DisplayNormalFunction);
+
+
+fun KeyInputFunction(key) {
+	inputs.key_press++;
+}
+
+Plymouth.SetKeyboardInputFunction(KeyInputFunction);
+
+
+fun MessageFunction(text) {
+	message.image = Image.Text(text, 1, 1, 1);
+	message.sprite = Sprite(message.image);
+	message.sprite.SetPosition(src.half.w - message.image.GetWidth() /2, message.image.GetHeight());
+}
+
+Plymouth.SetMessageFunction(MessageFunction);
+
